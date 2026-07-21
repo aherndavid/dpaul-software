@@ -4,45 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
-<style>
-    /* 1. Container for the rotating hero images */
-    .hero-image-rotator {
-        position: relative;
-        width: 100%;
-        max-width: 336px; /* Reduced by ~20% from 420px */
-        aspect-ratio: 498 / 546; 
-        display: block;
-        margin: 0 auto;
-        filter: drop-shadow(0 30px 60px rgba(0,0,0,0.55));
-    }
-
-    /* 2. Lock both images to identical dimensions and overlay them */
-    .hero-image-rotator img {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain; /* Ensures both match size constraints identically */
-        opacity: 0;
-        transition: opacity 1s ease-in-out;
-    }
-
-    /* 3. Active state for the currently visible image */
-    .hero-image-rotator img.active {
-        opacity: 1;
-        z-index: 1;
-    }
-
-    /* 4. Fallback for the first image before script kicks in */
-    .hero-image-rotator img:first-child {
-        position: relative;
-        opacity: 1;
-    }
-    .hero-image-rotator img:not(:first-child) {
-        position: absolute;
-    }
-</style>
 </head>
 <body>
 <x-dc>
@@ -59,6 +20,12 @@ a{color:inherit;text-decoration:none;}
 ::selection{background:#e6432a;color:#171717;}
 .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;}
 @media (max-width:720px){.features-grid{grid-template-columns:1fr;}}
+.hero-image-rotator{position:relative;width:100%;max-width:696px;aspect-ratio:498/546;display:block;margin:0 auto;filter:drop-shadow(0 30px 60px rgba(0,0,0,0.55));}
+.hero-image-rotator::before{content:"";display:block;padding-top:109.6%;}
+.hero-image-rotator img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;opacity:0;animation:heroFade 20s ease-in-out infinite;}
+.hero-image-rotator img:nth-of-type(1){animation-delay:0s;}
+.hero-image-rotator img:nth-of-type(2){animation-delay:-10s;}
+@keyframes heroFade{0%,45%{opacity:1;}50%,95%{opacity:0;}100%{opacity:1;}}
 </style>
 </helmet>
 
@@ -75,9 +42,9 @@ a{color:inherit;text-decoration:none;}
   <!-- NAV -->
   <nav style="position:sticky; top:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; padding:20px clamp(20px,5vw,64px); border-bottom:1px solid var(--border); background:rgba(23,23,23,0.92); backdrop-filter:blur(8px);">
     <div style="display:flex; align-items:center; gap:14px;">
-      <span style="font-size:13px; letter-spacing:0.12em; color:var(--muted); text-transform:uppercase;">Web Media Converter</span>
+      <span style="font-size:17px; letter-spacing:0.12em; color:var(--muted); text-transform:uppercase;">Web Media Converter</span>
     </div>
-    <div style="display:flex; align-items:center; gap:clamp(16px,3vw,36px); flex-wrap:wrap; font-size:13px; letter-spacing:0.08em; text-transform:uppercase;">
+    <div style="display:flex; align-items:center; gap:clamp(16px,3vw,36px); flex-wrap:wrap; font-size:17px; letter-spacing:0.08em; text-transform:uppercase;">
       <details style="position:relative;">
         <summary style="list-style:none; cursor:pointer; color:var(--fg); opacity:0.85; display:flex; align-items:center; gap:6px;" style-hover="opacity:1;">Software <span style="font-size:9px;">▾</span></summary>
         <div style="position:absolute; top:calc(100% + 14px); left:0; min-width:220px; background:var(--panel); border:1px solid var(--border-strong); padding:6px; z-index:30;">
@@ -87,7 +54,6 @@ a{color:inherit;text-decoration:none;}
           </a>
         </div>
       </details>
-      <a href="#features" style="color:var(--fg); opacity:0.85;" style-hover="opacity:1;">Features</a>
       <a href="#pricing" style="color:var(--fg); opacity:0.85;" style-hover="opacity:1;">Pricing</a>
       <a href="https://www.dpaul.studio" target="_blank" rel="noopener" style="color:var(--fg); opacity:0.85;" style-hover="opacity:1;">Portfolio</a>
       <a href="{{ stripeUrl }}" target="_blank" rel="noopener" style="background:var(--accent); color:#171310; padding:10px 18px; font-weight:700; border:1px solid var(--accent);" style-hover="background:#171310; color:var(--accent);">Get WMC</a>
@@ -110,7 +76,7 @@ a{color:inherit;text-decoration:none;}
     </div>
     <!-- ROTATING HERO IMAGE CONTAINER -->
     <div class="hero-image-rotator" id="heroRotator">
-      <img src="assets/wmc.webp" alt="Web Media Converter standard interface" class="active">
+      <img src="assets/wmc.webp" alt="Web Media Converter standard interface">
       <img src="assets/wmc-pro.webp" alt="Web Media Converter Pro interface">
     </div>
   </section>
@@ -154,7 +120,7 @@ a{color:inherit;text-decoration:none;}
       <p style="font-size:16px; color:var(--muted); max-width:480px; margin:0;">A full folder of images and video, converted to WebP and WebM in one pass — with the exact file size reduction shown per file as it happens.</p>
     </div>
     <div style="justify-self:center; width:min(280px,80vw); aspect-ratio:9/16; border:1px solid var(--border-strong); position:relative; overflow:hidden; background:var(--panel);">
-      <video autoplay loop muted playsinline style="width:100%; height:100%; object-fit:cover; display:block;">
+      <video id="demoVideo" autoplay loop muted playsinline style="width:100%; height:100%; object-fit:cover; display:block;">
         <source src="assets/wmc-example.webm" type="video/webm">
         <source src="assets/wmc-example.mp4" type="video/mp4">
         Your browser does not support the video tag.
@@ -251,20 +217,60 @@ a{color:inherit;text-decoration:none;}
 
 </x-dc>
 
-<!-- 10-SECOND IMAGE ROTATOR SCRIPT -->
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    const rotator = document.getElementById('heroRotator');
-    if (!rotator) return;
-    const images = rotator.querySelectorAll('img');
-    if (images.length < 2) return;
-    
-    let currentIndex = 0;
-    setInterval(() => {
-      images[currentIndex].classList.remove('active');
-      currentIndex = (currentIndex + 1) % images.length;
-      images[currentIndex].classList.add('active');
-    }, 10000); // 10 seconds interval
+    function getVideo() {
+      return document.getElementById('demoVideo');
+    }
+
+    function tryPlay() {
+      var v = getVideo();
+      if (!v) return;
+      // Some browsers require muted to be set as a JS property, not
+      // just an HTML attribute, before autoplay is permitted
+      v.muted = true;
+      v.defaultMuted = true;
+      if (v.paused) {
+        v.play().catch(function() {});
+      }
+    }
+
+    tryPlay();
+
+    // Catch the first interaction of any kind, anywhere on the page —
+    // some embedded browsers gate ALL autoplay behind this
+    ['click', 'touchstart', 'scroll', 'keydown'].forEach(function(evt) {
+      document.addEventListener(evt, tryPlay, { passive: true });
+    });
+
+    // Keep retrying for a while — if the page framework re-renders and
+    // replaces the video element after this script first ran, a single
+    // early attempt would be lost since it targeted the old, detached node
+    var attempts = 0;
+    var retryTimer = setInterval(function() {
+      tryPlay();
+      attempts++;
+      if (attempts > 15) clearInterval(retryTimer);
+    }, 1000);
+
+    // Also retry whenever the video scrolls into view, re-checking for a
+    // fresh element reference each time in case it was swapped out
+    if ('IntersectionObserver' in window) {
+      var lastObserved = null;
+      var attachTimer = setInterval(function() {
+        var v = getVideo();
+        if (v && v !== lastObserved) {
+          lastObserved = v;
+          var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+              if (entry.isIntersecting) tryPlay();
+            });
+          }, { threshold: 0.25 });
+          observer.observe(v);
+        }
+      }, 1000);
+      setTimeout(function() { clearInterval(attachTimer); }, 15000);
+    }
   });
 </script>
 
