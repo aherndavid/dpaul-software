@@ -126,7 +126,7 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
     </div>
   </div>
 
-  <p class="intro">Paste or upload your CV once — it's remembered on this device. Paste or upload any job posting and get a plain-spoken match assessment, not a hype job. PDF, .txt and .md files all work.</p>
+  <p class="intro">Paste or upload your CV once — it's remembered on this device while you're viewing this inside Claude. Paste or upload any job posting and get a plain-spoken match assessment, not a hype job. PDF, .txt and .md files all work. (If you've downloaded this file and are opening it directly in a browser, autosave won't be available — just re-paste your CV each time.)</p>
 
   <div class="panel">
     <div class="panel-head">
@@ -228,7 +228,13 @@ const loadingMessages = [
 ];
 
 // --- load saved CV on start ---
+const storageAvailable = !!(window.storage && typeof window.storage.get === 'function');
+
 (async function loadSavedCv(){
+  if (!storageAvailable) {
+    cvStatus.textContent = 'autosave unavailable here';
+    return;
+  }
   try{
     const r = await window.storage.get('user-cv', false);
     if(r && r.value){
@@ -241,6 +247,10 @@ const loadingMessages = [
 
 let saveTimer;
 cvText.addEventListener('input', ()=>{
+  if (!storageAvailable) {
+    cvStatus.textContent = 'autosave unavailable here';
+    return;
+  }
   cvStatus.textContent = 'editing…';
   cvStatus.classList.remove('saved');
   clearTimeout(saveTimer);
@@ -251,14 +261,18 @@ cvText.addEventListener('input', ()=>{
         cvStatus.textContent = 'saved on this device';
         cvStatus.classList.add('saved');
       }
-    }catch(e){ cvStatus.textContent = 'save failed'; }
+    }catch(e){
+      console.error('CV autosave failed:', e);
+      cvStatus.textContent = 'save failed: ' + (e && e.message ? e.message : 'unknown error');
+    }
   }, 900);
 });
 
 document.getElementById('clearCv').addEventListener('click', async ()=>{
   cvText.value = '';
-  cvStatus.textContent = 'not saved';
+  cvStatus.textContent = storageAvailable ? 'not saved' : 'autosave unavailable here';
   cvStatus.classList.remove('saved');
+  if (!storageAvailable) return;
   try{ await window.storage.delete('user-cv', false); }catch(e){}
 });
 
