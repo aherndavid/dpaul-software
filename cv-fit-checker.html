@@ -397,6 +397,7 @@ document.getElementById('copyLogBtn').addEventListener('click', async ()=>{
     setTimeout(()=>{ btn.textContent = orig; }, 1200);
   }catch(e){ /* clipboard unavailable, ignore */ }
 });
+function showError(msg){
   errorBox.textContent = msg;
   errorBox.style.display = 'block';
 }
