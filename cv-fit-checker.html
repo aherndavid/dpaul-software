@@ -144,6 +144,18 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
 
   <div class="panel">
     <div class="panel-head">
+      <div class="section-label"><span class="n">0</span> Anthropic API Key</div>
+      <div class="status-chip" id="keyStatus">not saved</div>
+    </div>
+    <textarea id="apiKey" placeholder="sk-ant-…" style="min-height:44px; font-family: var(--font-mono); font-size:0.82rem;"></textarea>
+    <div class="row-actions">
+      <span class="filename">Stored only in this browser's localStorage — never sent anywhere except api.anthropic.com. Get one at console.anthropic.com.</span>
+      <button class="clearlink" id="clearKey">clear saved key</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
       <div class="section-label"><span class="n">1</span> Your CV</div>
       <div class="status-chip" id="cvStatus">not saved</div>
     </div>
@@ -252,6 +264,46 @@ const loadingMessages = [
   "Checking basic qualifications first…",
   "Writing up the honest version…"
 ];
+
+// --- API key: stored in localStorage (this file runs standalone, outside the artifact sandbox) ---
+const apiKeyEl = document.getElementById('apiKey');
+const keyStatus = document.getElementById('keyStatus');
+
+(function loadSavedKey(){
+  try{
+    const saved = localStorage.getItem('cv-fit-checker-api-key');
+    if(saved){
+      apiKeyEl.value = saved;
+      keyStatus.textContent = 'saved on this device';
+      keyStatus.classList.add('saved');
+    }
+  }catch(e){ /* localStorage unavailable */ }
+})();
+
+let keySaveTimer;
+apiKeyEl.addEventListener('input', ()=>{
+  keyStatus.textContent = 'editing…';
+  keyStatus.classList.remove('saved');
+  clearTimeout(keySaveTimer);
+  keySaveTimer = setTimeout(()=>{
+    try{
+      if(apiKeyEl.value.trim()){
+        localStorage.setItem('cv-fit-checker-api-key', apiKeyEl.value.trim());
+        keyStatus.textContent = 'saved on this device';
+        keyStatus.classList.add('saved');
+      }
+    }catch(e){
+      keyStatus.textContent = 'save failed';
+    }
+  }, 600);
+});
+
+document.getElementById('clearKey').addEventListener('click', ()=>{
+  apiKeyEl.value = '';
+  keyStatus.textContent = 'not saved';
+  keyStatus.classList.remove('saved');
+  try{ localStorage.removeItem('cv-fit-checker-api-key'); }catch(e){}
+});
 
 // --- load saved CV on start ---
 const storageAvailable = !!(window.storage && typeof window.storage.get === 'function');
@@ -409,6 +461,8 @@ analyzeBtn.addEventListener('click', async ()=>{
   const job = jobText.value.trim();
   if(cv.length < 40){ showError('Paste in more of your CV — that looks too short to assess.'); return; }
   if(job.length < 40){ showError('Paste in the job description first.'); return; }
+  const apiKey = apiKeyEl.value.trim();
+  if(!apiKey){ showError('Add your Anthropic API key above first (get one at console.anthropic.com).'); return; }
 
   analyzeBtn.disabled = true;
   results.style.display = 'none';
@@ -453,9 +507,14 @@ Include 3-5 categories covering things like: required/basic qualifications, rele
     try {
       response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true"
+        },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
+          model: "claude-sonnet-5",
           max_tokens: 2500,
           system: systemPrompt,
           messages: [{ role: "user", content: userPrompt }]
