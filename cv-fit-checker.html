@@ -283,6 +283,7 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
 
     <div class="cta-row no-print">
       <button class="cta" id="printBtn" type="button">Print this report</button>
+      <button class="cta" id="newRoleBtn" type="button" style="background:transparent; color:var(--charcoal); border:1px solid var(--charcoal);">Check another role</button>
     </div>
   </div>
 
@@ -350,6 +351,16 @@ document.getElementById('termsInfoBtn').addEventListener('click', ()=>{
 
 document.getElementById('printBtn').addEventListener('click', ()=>{
   window.print();
+});
+
+document.getElementById('newRoleBtn').addEventListener('click', ()=>{
+  jobText.value = '';
+  document.getElementById('jobFileName').textContent = '';
+  results.style.display = 'none';
+  hideError();
+  log('--- cleared job posting to check another role (CV kept) ---');
+  jobText.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  jobText.focus();
 });
 
 (function loadSavedKey(){
