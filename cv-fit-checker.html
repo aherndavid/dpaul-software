@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CV Fit Checker — dPaul.studio</title>
+<title>Clever CV Checker — dPaul.studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -17,36 +17,33 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { background: var(--off-white); color: var(--charcoal); }
+html { font-size: 18px; }
 body { font-family: var(--font-sans); min-height: 100vh; }
 
 .wrap { max-width: 760px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
 
-/* ── Header, matches the rest of the dPaul.studio tool suite ── */
-.header { display: flex; align-items: flex-end; justify-content: space-between; border-bottom: 2px solid var(--charcoal); padding-bottom: 0.7rem; margin-bottom: 2rem; }
-.header-left { display: flex; flex-direction: column; gap: 2px; }
-.brand { font-family: var(--font-cond); font-size: 2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; line-height: 1; }
-.tagline { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; color: #666; text-transform: uppercase; margin-top: 4px; }
-.header-right { display: flex; align-items: center; gap: 14px; }
-#eq-container { display: flex; align-items: flex-end; gap: 3px; height: 20px; }
+/* ── Banner ── */
+.banner-wrap { width: 100%; margin-bottom: 2rem; }
+.banner-img { display: block; width: 100%; height: auto; }
+@media print { .banner-wrap { display: none; } }
+
 .eq-bar { width: 3px; background: var(--charcoal); border-radius: 2px; animation: eq-bounce 1s ease-in-out infinite alternate; }
 .eq-bar:nth-child(2) { animation-delay: 0.15s; }
 .eq-bar:nth-child(3) { animation-delay: 0.3s; }
 .eq-bar:nth-child(4) { animation-delay: 0.45s; }
 @keyframes eq-bounce { 0% { height: 3px; } 100% { height: 18px; } }
-.dpaul-logo { font-family: var(--font-cond); font-size: 1.1rem; font-weight: 700; color: var(--charcoal); letter-spacing: -0.01em; line-height: 1; text-decoration: none; padding-bottom: 3px; }
-.dpaul-logo:hover { text-decoration: underline; }
 
-.intro { color: #555; font-size: 0.9rem; line-height: 1.5; max-width: 54ch; margin-bottom: 2rem; }
+.intro { color: #555; font-size: 0.9rem; line-height: 1.5; max-width: none; width: 100%; margin-bottom: 2rem; }
 
 /* ── Panels ── */
 .panel { border: 1px solid var(--charcoal); padding: 1.25rem 1.4rem; margin-bottom: 1.25rem; }
 .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 0.9rem; }
 .section-label { font-family: var(--font-cond); font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 8px; }
-.section-label .n { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--charcoal); color:var(--off-white); font-family: var(--font-mono); font-size:10px; font-weight:700; }
+.section-label .n { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; background:var(--charcoal); color:var(--off-white); font-family: var(--font-mono); font-size:11px; font-weight:700; }
 .status-chip { font-family: var(--font-mono); font-size: 0.7rem; color: #999; text-transform: uppercase; letter-spacing: 0.05em; }
 .status-chip.saved { color: var(--charcoal); }
 
-.info-btn { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--charcoal); background: transparent; color: var(--charcoal); font-family: var(--font-mono); font-size: 10px; font-weight: 700; line-height: 1; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.info-btn { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--charcoal); background: transparent; color: var(--charcoal); font-family: var(--font-mono); font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 .info-btn:hover, .info-btn.active { background: var(--charcoal); color: var(--off-white); }
 .info-box { display: none; border: 1px dotted var(--charcoal); padding: 0.85rem 1rem; margin-bottom: 0.9rem; font-size: 0.8rem; line-height: 1.5; color: #444; }
 .info-box.open { display: block; }
@@ -140,23 +137,11 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
 <body>
 <div class="wrap">
 
-  <div class="header">
-    <div class="header-left">
-      <div class="brand">CV Fit Checker</div>
-      <div class="tagline">A dPaul.studio tool</div>
-    </div>
-    <div class="header-right">
-      <div id="eq-container">
-        <div class="eq-bar" style="height:14px;"></div>
-        <div class="eq-bar" style="height:8px;"></div>
-        <div class="eq-bar" style="height:18px;"></div>
-        <div class="eq-bar" style="height:10px;"></div>
-      </div>
-      <a class="dpaul-logo" href="https://dpaul-software.uk" target="_blank" rel="noopener">dPaul.studio</a>
-    </div>
+  <div class="banner-wrap">
+    <img src="assets/clever-cv-banner.webp" alt="Clever CV" class="banner-img">
   </div>
 
-  <p class="intro">Paste or upload your CV once — it's remembered on this device while you're viewing this inside Claude. Paste or upload any job posting and get a plain-spoken match assessment, not a hype job. PDF, .txt and .md files all work. (If you've downloaded this file and are opening it directly in a browser, autosave won't be available — just re-paste your CV each time.)</p>
+  <p class="intro">Clever CV Checker: paste or upload your CV once — it's remembered on this device while you're viewing this inside Claude. Paste or upload any job posting and get a plain-spoken match assessment, not a hype job. PDF, .txt and .md files all work. (If you've downloaded this file and are opening it directly in a browser, autosave won't be available — just re-paste your CV each time.)</p>
 
   <div class="panel">
     <div class="panel-head">
