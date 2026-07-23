@@ -423,7 +423,7 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
 
   <footer>
     <a href="https://dpaul-software.uk" target="_blank" rel="noopener">dpaul-software.uk</a>
-    <span class="version-tag">v1.7</span>
+    <span class="version-tag">v1.8</span>
   </footer>
 
 </div>
@@ -835,6 +835,10 @@ async function callClaudeJSON(apiKey, systemPrompt, userPrompt, maxTokens){
   if (!textBlocks.trim()) {
     throw new Error('Empty response from model' + (data.stop_reason ? ' (stop_reason: ' + data.stop_reason + ')' : ''));
   }
+  if (data.stop_reason === 'max_tokens') {
+    log('response was cut off by the token limit before it finished', 'err');
+    throw new Error('The response got cut off before it finished (it hit the model\'s output limit) — this can happen with a long CV. Please try again; if it keeps happening, try trimming the CV or job posting text a little.');
+  }
 
   let clean = textBlocks.replace(/```json/gi, '').replace(/```/g, '').trim();
   const firstBrace = clean.indexOf('{');
@@ -1124,7 +1128,7 @@ Include 3-8 items in changes. refined_cv must be a complete, standalone CV — n
 
   try{
     log('--- refining CV based on ' + answered.length + ' answered question(s) ---');
-    const data = await callClaudeJSON(apiKey, systemPrompt, userPrompt, 3500);
+    const data = await callClaudeJSON(apiKey, systemPrompt, userPrompt, 6000);
     log('refine parsed OK — revised match ' + data.revised_percentage + '%', 'ok');
     renderRefineResults(data);
   }catch(err){
