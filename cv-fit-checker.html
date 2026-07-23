@@ -186,11 +186,19 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
       <div class="section-label"><span class="n">1</span> Your CV</div>
       <div class="status-chip" id="cvStatus">not saved</div>
     </div>
+    <div class="row-actions" style="margin-bottom:0.7rem;">
+      <select id="cvProfileSelect" style="font-family: var(--font-mono); font-size:0.85rem; padding:0.4rem 0.6rem; border:1px solid var(--charcoal); background:var(--off-white); flex:1; min-width:180px;">
+        <option value="">— new / unsaved CV —</option>
+      </select>
+    </div>
     <textarea id="cvText" placeholder="Paste your CV text here, or upload a .txt/.md file below."></textarea>
     <div class="row-actions">
       <label class="filebtn">Upload .pdf / .txt / .md<input type="file" id="cvFile" accept=".txt,.md,.pdf" style="display:none;"></label>
       <span class="filename" id="cvFileName"></span>
-      <button class="clearlink" id="clearCv">clear saved CV</button>
+      <button class="clearlink" id="saveCvBtn">save as new CV…</button>
+      <button class="clearlink" id="updateCvBtn" style="display:none;">update saved CV</button>
+      <button class="clearlink" id="deleteCvBtn" style="display:none;">delete this CV</button>
+      <button class="clearlink" id="clearCv">clear text box</button>
     </div>
   </div>
 
@@ -380,53 +388,130 @@ document.getElementById('clearKey').addEventListener('click', ()=>{
   try{ localStorage.removeItem('cv-fit-checker-api-key'); }catch(e){}
 });
 
-// --- load saved CV on start ---
-const storageAvailable = !!(window.storage && typeof window.storage.get === 'function');
+// --- multiple named CVs, stored in localStorage ---
+const CV_PROFILES_KEY = 'cv-fit-checker-profiles';
+const CV_ACTIVE_KEY = 'cv-fit-checker-active-cv-id';
+const cvProfileSelect = document.getElementById('cvProfileSelect');
+const updateCvBtn = document.getElementById('updateCvBtn');
+const deleteCvBtn = document.getElementById('deleteCvBtn');
 
-(async function loadSavedCv(){
-  if (!storageAvailable) {
-    cvStatus.textContent = 'autosave unavailable here';
-    return;
-  }
+function loadCvProfiles(){
   try{
-    const r = await window.storage.get('user-cv', false);
-    if(r && r.value){
-      cvText.value = r.value;
-      cvStatus.textContent = 'saved on this device';
-      cvStatus.classList.add('saved');
-    }
-  }catch(e){ /* no saved cv yet */ }
+    const raw = localStorage.getItem(CV_PROFILES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+function saveCvProfiles(profiles){
+  try{ localStorage.setItem(CV_PROFILES_KEY, JSON.stringify(profiles)); }catch(e){
+    console.error('could not save CV profiles', e);
+  }
+}
+function getActiveCvId(){
+  try{ return localStorage.getItem(CV_ACTIVE_KEY) || ''; }catch(e){ return ''; }
+}
+function setActiveCvId(id){
+  try{
+    if(id) localStorage.setItem(CV_ACTIVE_KEY, id);
+    else localStorage.removeItem(CV_ACTIVE_KEY);
+  }catch(e){}
+}
+
+function renderCvProfileOptions(selectedId){
+  const profiles = loadCvProfiles();
+  cvProfileSelect.innerHTML = '<option value="">— new / unsaved CV —</option>' +
+    profiles.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('');
+  cvProfileSelect.value = selectedId && profiles.some(p=>p.id===selectedId) ? selectedId : '';
+  updateSelectButtonsVisibility();
+}
+
+function updateSelectButtonsVisibility(){
+  const hasSelection = !!cvProfileSelect.value;
+  updateCvBtn.style.display = hasSelection ? '' : 'none';
+  deleteCvBtn.style.display = hasSelection ? '' : 'none';
+}
+
+function setCvStatus(text, saved){
+  cvStatus.textContent = text;
+  cvStatus.classList.toggle('saved', !!saved);
+}
+
+// initial load
+(function initCvProfiles(){
+  const profiles = loadCvProfiles();
+  const activeId = getActiveCvId();
+  renderCvProfileOptions(activeId);
+  const active = profiles.find(p => p.id === activeId);
+  if(active){
+    cvText.value = active.text;
+    setCvStatus('loaded: ' + active.name, true);
+  } else if (profiles.length){
+    setCvStatus(profiles.length + ' CV' + (profiles.length>1?'s':'') + ' saved — pick one above or paste a new one', false);
+  } else {
+    setCvStatus('not saved', false);
+  }
 })();
 
-let saveTimer;
-cvText.addEventListener('input', ()=>{
-  if (!storageAvailable) {
-    cvStatus.textContent = 'autosave unavailable here';
+cvProfileSelect.addEventListener('change', ()=>{
+  const id = cvProfileSelect.value;
+  updateSelectButtonsVisibility();
+  if(!id){
+    setActiveCvId('');
+    setCvStatus('unsaved — paste or upload a CV, then save it with a name', false);
     return;
   }
-  cvStatus.textContent = 'editing…';
-  cvStatus.classList.remove('saved');
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async ()=>{
-    try{
-      if(cvText.value.trim().length > 20){
-        await window.storage.set('user-cv', cvText.value, false);
-        cvStatus.textContent = 'saved on this device';
-        cvStatus.classList.add('saved');
-      }
-    }catch(e){
-      console.error('CV autosave failed:', e);
-      cvStatus.textContent = 'save failed: ' + (e && e.message ? e.message : 'unknown error');
-    }
-  }, 900);
+  const profiles = loadCvProfiles();
+  const profile = profiles.find(p => p.id === id);
+  if(profile){
+    cvText.value = profile.text;
+    setActiveCvId(profile.id);
+    setCvStatus('loaded: ' + profile.name, true);
+  }
 });
 
-document.getElementById('clearCv').addEventListener('click', async ()=>{
+document.getElementById('saveCvBtn').addEventListener('click', ()=>{
+  const text = cvText.value.trim();
+  if(text.length < 20){ showError('Paste in your CV text before saving it.'); return; }
+  const name = prompt('Name this CV so you can find it later (e.g. "Apple retail CV", "IT support CV"):', '');
+  if(!name || !name.trim()) return;
+  const profiles = loadCvProfiles();
+  const id = 'cv_' + Date.now();
+  profiles.push({ id, name: name.trim(), text });
+  saveCvProfiles(profiles);
+  setActiveCvId(id);
+  renderCvProfileOptions(id);
+  setCvStatus('saved: ' + name.trim(), true);
+});
+
+updateCvBtn.addEventListener('click', ()=>{
+  const id = cvProfileSelect.value;
+  if(!id) return;
+  const text = cvText.value.trim();
+  if(text.length < 20){ showError('There\'s not enough text here to save.'); return; }
+  const profiles = loadCvProfiles();
+  const profile = profiles.find(p => p.id === id);
+  if(!profile) return;
+  profile.text = text;
+  saveCvProfiles(profiles);
+  setCvStatus('updated: ' + profile.name, true);
+});
+
+deleteCvBtn.addEventListener('click', ()=>{
+  const id = cvProfileSelect.value;
+  if(!id) return;
+  const profiles = loadCvProfiles();
+  const profile = profiles.find(p => p.id === id);
+  if(!profile) return;
+  if(!confirm('Delete the saved CV "' + profile.name + '"? This can\'t be undone.')) return;
+  const remaining = profiles.filter(p => p.id !== id);
+  saveCvProfiles(remaining);
+  setActiveCvId('');
   cvText.value = '';
-  cvStatus.textContent = storageAvailable ? 'not saved' : 'autosave unavailable here';
-  cvStatus.classList.remove('saved');
-  if (!storageAvailable) return;
-  try{ await window.storage.delete('user-cv', false); }catch(e){}
+  renderCvProfileOptions('');
+  setCvStatus(remaining.length ? remaining.length + ' CV' + (remaining.length>1?'s':'') + ' saved — pick one above' : 'not saved', false);
+});
+
+document.getElementById('clearCv').addEventListener('click', ()=>{
+  cvText.value = '';
 });
 
 if (window.pdfjsLib) {
