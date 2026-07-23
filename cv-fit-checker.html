@@ -171,6 +171,11 @@ ul.plain li:first-child { border-top: none; padding-top: 0; }
 .popup-close:hover { color: var(--charcoal); }
 .popup-pct { font-family: var(--font-cond); font-size: 3.2rem; font-weight: 700; line-height: 1; margin-bottom: 0.6rem; }
 .popup-verdict { font-size: 0.9rem; line-height: 1.5; color: #444; margin: 0.8rem 0 1.4rem; }
+.popup-eyebrow { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin: 0 0 0.5rem; }
+.popup-pct-compare { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin-bottom: 0.7rem; }
+.popup-pct-compare span:first-child { font-family: var(--font-cond); font-size: 1.6rem; font-weight: 700; color: #999; }
+.popup-arrow { font-size: 1.2rem; color: #999; }
+.popup-pct-new { font-family: var(--font-cond); font-size: 2.6rem; font-weight: 700; color: var(--charcoal); }
 .loading-eq { display: flex; align-items: flex-end; justify-content: center; gap: 4px; height: 28px; margin-bottom: 1rem; }
 .loading-eq .eq-bar { width: 4px; }
 .loading .msg { font-family: var(--font-mono); font-size: 0.78rem; color: #777; letter-spacing: 0.03em; text-transform: uppercase; }
@@ -292,6 +297,31 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
       <span class="verdict-tag" id="popupVerdictTag">—</span>
       <p class="popup-verdict" id="popupVerdictBody"></p>
       <button class="cta" id="popupViewBtn" type="button" style="padding:0.75rem 2.2rem; font-size:0.95rem;">View full report</button>
+      <div id="popupLowMatchActions" style="display:none; margin-top:0.9rem; padding-top:0.9rem; border-top:1px dotted #ccc;">
+        <p class="popup-eyebrow" style="margin-bottom:0.7rem;">Under 50% — probably not worth chasing</p>
+        <div class="cta-row" style="margin: 0 0 0.4rem; gap: 10px;">
+          <button class="clearlink" id="popupClearBtn" type="button">clear this job, try another</button>
+          <button class="clearlink" id="popupStartFreshBtn" type="button">start completely fresh</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-popup-overlay" id="refinePopupOverlay">
+    <div class="result-popup-card">
+      <button class="popup-close" id="refinePopupCloseBtn" type="button" aria-label="Close">&times;</button>
+      <p class="popup-eyebrow">CV refined</p>
+      <div class="popup-pct-compare">
+        <span id="refinePopupOrigPct">0%</span>
+        <span class="popup-arrow">→</span>
+        <span id="refinePopupNewPct" class="popup-pct-new">0%</span>
+      </div>
+      <span class="verdict-tag" id="refinePopupVerdictTag">—</span>
+      <p class="popup-verdict" id="refinePopupVerdictBody"></p>
+      <div class="cta-row" style="margin: 0 0 0.6rem; gap: 10px;">
+        <button class="cta" id="refinePopupRecheckBtn" type="button" style="padding:0.75rem 1.6rem; font-size:0.88rem;">Good enough — check it again</button>
+      </div>
+      <button class="clearlink" id="refinePopupViewBtn" type="button">just show me the refined CV</button>
     </div>
   </div>
 
@@ -423,7 +453,7 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
 
   <footer>
     <a href="https://dpaul-software.uk" target="_blank" rel="noopener">dpaul-software.uk</a>
-    <span class="version-tag">v1.8</span>
+    <span class="version-tag">v2.0</span>
   </footer>
 
 </div>
@@ -485,6 +515,7 @@ function showResultPopup(data){
     : 'Skip this one';
   tag.className = 'verdict-tag ' + (data.recommendation || 'stretch');
   document.getElementById('popupVerdictBody').textContent = data.verdict || '';
+  document.getElementById('popupLowMatchActions').style.display = pct < 50 ? 'block' : 'none';
   document.getElementById('resultPopupOverlay').classList.add('open');
 }
 function hideResultPopup(){
@@ -497,6 +528,52 @@ document.getElementById('popupViewBtn').addEventListener('click', ()=>{
 });
 document.getElementById('resultPopupOverlay').addEventListener('click', (e)=>{
   if(e.target.id === 'resultPopupOverlay') hideResultPopup();
+});
+document.getElementById('popupClearBtn').addEventListener('click', ()=>{
+  hideResultPopup();
+  clearJobForNewRole();
+  jobText.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  jobText.focus();
+});
+document.getElementById('popupStartFreshBtn').addEventListener('click', ()=>{
+  hideResultPopup();
+  startCompletelyFresh();
+  cvText.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  cvText.focus();
+});
+
+function showRefinePopup(data){
+  const origPct = Math.max(0, Math.min(100, Math.round(lastCheck.data.overall_percentage)));
+  const newPct = Math.max(0, Math.min(100, Math.round(data.revised_percentage)));
+  document.getElementById('refinePopupOrigPct').textContent = origPct + '%';
+  document.getElementById('refinePopupNewPct').textContent = newPct + '%';
+  const tag = document.getElementById('refinePopupVerdictTag');
+  tag.textContent = data.recommendation === 'apply' ? (newPct > origPct ? 'Now worth applying' : 'Worth applying')
+    : data.recommendation === 'stretch' ? 'Still a stretch'
+    : 'Still skip this one';
+  tag.className = 'verdict-tag ' + (data.recommendation || 'stretch');
+  document.getElementById('refinePopupVerdictBody').textContent = data.verdict || '';
+  document.getElementById('refinePopupOverlay').classList.add('open');
+}
+function hideRefinePopup(){
+  document.getElementById('refinePopupOverlay').classList.remove('open');
+}
+document.getElementById('refinePopupCloseBtn').addEventListener('click', hideRefinePopup);
+document.getElementById('refinePopupViewBtn').addEventListener('click', ()=>{
+  hideRefinePopup();
+  document.getElementById('refineResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+document.getElementById('refinePopupOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'refinePopupOverlay') hideRefinePopup();
+});
+document.getElementById('refinePopupRecheckBtn').addEventListener('click', ()=>{
+  if(!lastRefinedCv){ return; }
+  hideRefinePopup();
+  cvText.value = lastRefinedCv;
+  setCvStatus('using refined CV (not saved as a named CV yet)', false);
+  cvProfileSelect.value = '';
+  updateSelectButtonsVisibility();
+  analyzeBtn.click();
 });
 
 // --- API key: stored in localStorage (this file runs standalone, outside the artifact sandbox) ---
@@ -517,7 +594,7 @@ document.getElementById('printBtn').addEventListener('click', ()=>{
   window.print();
 });
 
-document.getElementById('newRoleBtn').addEventListener('click', ()=>{
+function clearJobForNewRole(){
   jobText.value = '';
   document.getElementById('jobFileName').textContent = '';
   results.style.display = 'none';
@@ -525,6 +602,26 @@ document.getElementById('newRoleBtn').addEventListener('click', ()=>{
   document.getElementById('refineResults').style.display = 'none';
   hideError();
   log('--- cleared job posting to check another role (CV kept) ---');
+}
+
+function startCompletelyFresh(){
+  jobText.value = '';
+  document.getElementById('jobFileName').textContent = '';
+  cvText.value = '';
+  document.getElementById('cvFileName').textContent = '';
+  cvProfileSelect.value = '';
+  setActiveCvId('');
+  updateSelectButtonsVisibility();
+  setCvStatus('not saved', false);
+  results.style.display = 'none';
+  document.getElementById('refinePanel').style.display = 'none';
+  document.getElementById('refineResults').style.display = 'none';
+  hideError();
+  log('--- started completely fresh: CV and job posting both cleared ---');
+}
+
+document.getElementById('newRoleBtn').addEventListener('click', ()=>{
+  clearJobForNewRole();
   jobText.scrollIntoView({ behavior: 'smooth', block: 'center' });
   jobText.focus();
 });
@@ -1188,6 +1285,7 @@ function renderRefineResults(data){
 
   document.getElementById('refineResults').style.display = 'block';
   document.getElementById('refineResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showRefinePopup(data);
 }
 
 document.getElementById('copyRefinedBtn').addEventListener('click', async ()=>{
