@@ -155,6 +155,13 @@ ul.plain li { font-size: 0.82rem; line-height: 1.5; padding: 0.55rem 0; border-t
 ul.plain li:first-child { border-top: none; padding-top: 0; }
 
 .loading { display: none; text-align: center; padding: 3rem 0; }
+
+.splash-overlay { position: fixed; inset: 0; background: rgba(19,20,19,0.72); display: none; align-items: center; justify-content: center; z-index: 999; padding: 1.5rem; }
+.splash-overlay.open { display: flex; }
+.splash-card { background: var(--off-white); border: 2px solid var(--charcoal); padding: 2.5rem 2rem; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 8px 0 rgba(0,0,0,0.15); }
+.splash-card .loading-eq { justify-content: center; }
+.splash-msg { font-family: var(--font-cond); font-size: 1.25rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; margin: 1.1rem 0 0.8rem; }
+.splash-tip { font-size: 0.9rem; color: #555; line-height: 1.5; min-height: 2.8em; }
 .loading-eq { display: flex; align-items: flex-end; justify-content: center; gap: 4px; height: 28px; margin-bottom: 1rem; }
 .loading-eq .eq-bar { width: 4px; }
 .loading .msg { font-family: var(--font-mono); font-size: 0.78rem; color: #777; letter-spacing: 0.03em; text-transform: uppercase; }
@@ -257,6 +264,16 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
       <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
     </div>
     <div class="msg" id="loadingMsg">Reading both documents…</div>
+  </div>
+
+  <div class="splash-overlay" id="splashOverlay">
+    <div class="splash-card">
+      <div class="loading-eq">
+        <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+      </div>
+      <p class="splash-msg" id="splashMsg">Working on it…</p>
+      <p class="splash-tip" id="splashTip"></p>
+    </div>
   </div>
 
   <div id="results">
@@ -387,7 +404,7 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
 
   <footer>
     <a href="https://dpaul-software.uk" target="_blank" rel="noopener">dpaul-software.uk</a>
-    <span class="version-tag">v1.5</span>
+    <span class="version-tag">v1.6</span>
   </footer>
 
 </div>
@@ -408,6 +425,37 @@ const loadingMessages = [
   "Checking basic qualifications first…",
   "Writing up the honest version…"
 ];
+
+const splashTips = [
+  "☕ Good time to grab that coffee — this'll be ready when you're back.",
+  "🧘 Stand up and roll your shoulders back for a second.",
+  "💧 While you wait: top up your water glass.",
+  "👀 Look at something 20 feet away for 20 seconds — your eyes will thank you.",
+  "🚶 A quick lap round the room counts as a break.",
+  "🧠 Fun fact: recruiters often spend under a minute on a first read of a CV.",
+  "🧠 Fun fact: tailoring a CV to the specific role reliably beats a generic one-size-fits-all version.",
+  "🧠 Fun fact: most 'must-have' requirements in job ads are really a wishlist, not a hard wall.",
+  "🌤️ However this goes, you've already done the hard part — you applied.",
+  "🧠 Fun fact: the word 'CV' comes from the Latin curriculum vitae — 'course of life'."
+];
+
+let splashInterval;
+function showSplash(msg){
+  document.getElementById('splashMsg').textContent = msg || 'Working on it…';
+  const tipEl = document.getElementById('splashTip');
+  let tipIdx = Math.floor(Math.random() * splashTips.length);
+  tipEl.textContent = splashTips[tipIdx];
+  document.getElementById('splashOverlay').classList.add('open');
+  clearInterval(splashInterval);
+  splashInterval = setInterval(()=>{
+    tipIdx = (tipIdx + 1) % splashTips.length;
+    tipEl.textContent = splashTips[tipIdx];
+  }, 4500);
+}
+function hideSplash(){
+  clearInterval(splashInterval);
+  document.getElementById('splashOverlay').classList.remove('open');
+}
 
 // --- API key: stored in localStorage (this file runs standalone, outside the artifact sandbox) ---
 const apiKeyEl = document.getElementById('apiKey');
@@ -777,6 +825,7 @@ analyzeBtn.addEventListener('click', async ()=>{
   results.style.display = 'none';
   document.getElementById('refineResults').style.display = 'none';
   loadingBox.style.display = 'block';
+  showSplash('Checking your fit…');
   let msgIdx = 0;
   loadingMsg.textContent = loadingMessages[0];
   const msgInterval = setInterval(()=>{
@@ -806,18 +855,26 @@ Respond with ONLY valid JSON, no markdown fences, no preamble, matching exactly 
   ],
   "strengths": ["<specific matching point>", "..."],
   "gaps": ["<specific mismatch or missing requirement>", "..."],
+  "skill_gap_questions": ["<a gap from the list above, ONLY if it's about a skill, tool, qualification, or type of experience the candidate might genuinely have but didn't mention — something answerable as yes/no/some experience>", "..."],
   "cv_suggestions": ["<specific, actionable edit to the candidate's CV that would better align it to THIS posting — e.g. rewording a bullet, reordering skills, adding a missing keyword the CV's experience actually supports, cutting irrelevant content>", "..."]
 }
-Include 3-5 categories covering things like: required/basic qualifications, relevant experience level, domain/industry fit, and specific tools or technical skills mentioned in the posting. Include 3-6 strengths and 3-6 gaps. Include 3-6 cv_suggestions — only suggest edits that are honest and supportable by what's actually in the candidate's CV; never invent experience or qualifications they don't have. If the CV is a poor fit even after edits (a hard-gate failure), say so plainly in cv_suggestions rather than suggesting cosmetic fixes.`;
+Include 3-5 categories covering things like: required/basic qualifications, relevant experience level, domain/industry fit, and specific tools or technical skills mentioned in the posting. Include 3-6 strengths and 3-6 gaps. Include 3-6 cv_suggestions — only suggest edits that are honest and supportable by what's actually in the candidate's CV; never invent experience or qualifications they don't have. If the CV is a poor fit even after edits (a hard-gate failure), say so plainly in cv_suggestions rather than suggesting cosmetic fixes.
+
+For skill_gap_questions: this is a SUBSET of gaps. Before including one, ask "could a candidate answer this with yes/no/some experience?" — only include it if the answer is genuinely yes.
+
+INCLUDE only gaps that name a specific missing or unconfirmed skill, tool, technology, methodology, certification, or type of hands-on work (e.g. "no mention of Kubernetes", "doesn't show experience with cold-calling").
+
+EXCLUDE anything that isn't really asking "do you have this skill" — including but not limited to: over/under-qualification, seniority or title mismatch, how the CV's job titles or framing will "read" or "come across" to a reader, salary/compensation, location/relocation/commute, visa/right-to-work/sponsorship, contract type/duration, notice period, years-of-experience-as-a-number mismatches, or anything about presentation/perception rather than possession of a skill. Those stay in "gaps" only — none of them can be truthfully resolved by the candidate answering yes/no/some, so a question about them would be nonsensical to show. It's fine — expected, even — for this list to be empty or much shorter than "gaps".`;
 
   const userPrompt = `CANDIDATE CV:\n"""\n${cv}\n"""\n\nJOB POSTING:\n"""\n${job}\n"""`;
 
   try{
     const parsed = await callClaudeJSON(apiKey, systemPrompt, userPrompt, 2500);
     log('parsed OK — overall match ' + parsed.overall_percentage + '%', 'ok');
+    parsed.skill_gap_questions = filterSkillGapQuestions(parsed.skill_gap_questions || []);
     lastCheck = { cv, job, data: parsed };
     renderResults(parsed);
-    renderGapQuestions(parsed.gaps || []);
+    renderGapQuestions(parsed.skill_gap_questions);
   }catch(err){
     console.error(err);
     log('check failed: ' + (err && err.message ? err.message : String(err)), 'err');
@@ -827,6 +884,7 @@ Include 3-5 categories covering things like: required/basic qualifications, rele
   }finally{
     clearInterval(msgInterval);
     loadingBox.style.display = 'none';
+    hideSplash();
     analyzeBtn.disabled = false;
   }
 });
@@ -898,6 +956,20 @@ function renderResults(data){
 let gapAnswers = {};
 let lastRefinedCv = '';
 
+// Safety net on top of the prompt: strip out anything that slipped through
+// but isn't really answerable as yes/no/some-experience (title framing,
+// overqualification, salary, location, visa, contract terms, etc.)
+const NON_SKILL_PATTERNS = [
+  /over.?qualif/i, /under.?qualif/i, /seniority/i, /\btitle(s)?\b.*(mismatch|read|come across|emphasi[sz])/i,
+  /(read|come across|perceiv)(s|ed)? as/i, /salary/i, /compensation/i, /pay rate/i,
+  /relocat/i, /commut/i, /\bvisa\b/i, /sponsorship/i, /right.to.work/i,
+  /notice period/i, /contract (type|length|duration)/i, /\byears? of experience\b.*(too (many|few)|mismatch|exceeds|below)/i,
+  /\bexceeds\b.*(requirement|experience)/i
+];
+function filterSkillGapQuestions(items){
+  return (items || []).filter(g => !NON_SKILL_PATTERNS.some(re => re.test(g)));
+}
+
 function renderGapQuestions(gaps){
   const panel = document.getElementById('refinePanel');
   const container = document.getElementById('gapQuestions');
@@ -968,7 +1040,7 @@ function wordDiffHighlight(oldText, newText){
 document.getElementById('refineBtn').addEventListener('click', async ()=>{
   if(!lastCheck){ showError('Run a check first.'); return; }
   hideError();
-  const gaps = lastCheck.data.gaps || [];
+  const gaps = lastCheck.data.skill_gap_questions || [];
   const answered = gaps.map((g,idx)=>({ gap: g, answer: gapAnswers[idx] })).filter(a=>a.answer);
   if(!answered.length){ showError('Answer at least one question above first.'); return; }
   const apiKey = apiKeyEl.value.trim();
@@ -978,6 +1050,7 @@ document.getElementById('refineBtn').addEventListener('click', async ()=>{
   refineBtn.disabled = true;
   const refineBtnOrigText = refineBtn.textContent;
   refineBtn.textContent = 'Rebuilding your CV…';
+  showSplash('Rebuilding your CV…');
 
   const answersText = answered.map(a => {
     const label = a.answer === 'yes' ? 'yes, has this experience' : a.answer === 'some' ? 'some/partial experience' : 'no experience with this';
@@ -1018,6 +1091,7 @@ Include 3-8 items in changes. refined_cv must be a complete, standalone CV — n
   }finally{
     refineBtn.disabled = false;
     refineBtn.textContent = refineBtnOrigText;
+    hideSplash();
   }
 });
 
