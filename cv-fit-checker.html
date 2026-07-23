@@ -136,6 +136,9 @@ textarea::placeholder { color: #999; }
 .verdict-tag.apply { background: var(--charcoal); color: var(--off-white); }
 .verdict-tag.stretch { background: transparent; color: var(--charcoal); }
 .verdict-tag.skip { background: transparent; color: var(--red); border-color: var(--red); }
+.verdict-tag.clickable { cursor: pointer; transition: all 0.15s ease; }
+.verdict-tag.clickable:hover { background: var(--red); color: var(--off-white); }
+.verdict-tag.clickable::after { content: ' ↻'; }
 .verdict-body { font-size: 0.95rem; line-height: 1.55; color: var(--charcoal); }
 
 .cat { margin-bottom: 1rem; }
@@ -454,7 +457,7 @@ footer a:hover { color: var(--charcoal); text-decoration: underline; }
 
   <footer>
     <a href="https://dpaul-software.uk" target="_blank" rel="noopener">dpaul-software.uk</a>
-    <span class="version-tag">v2.3</span>
+    <span class="version-tag">v2.4</span>
   </footer>
 
 </div>
@@ -553,6 +556,13 @@ function showRefinePopup(data){
     : data.recommendation === 'stretch' ? 'Still a stretch'
     : 'Still skip this one';
   tag.className = 'verdict-tag ' + (data.recommendation || 'stretch');
+  if(data.recommendation === 'skip'){
+    tag.classList.add('clickable');
+    tag.title = 'Click to start fresh';
+  } else {
+    tag.classList.remove('clickable');
+    tag.removeAttribute('title');
+  }
   document.getElementById('refinePopupVerdictBody').textContent = data.verdict || '';
   document.getElementById('refinePopupOverlay').classList.add('open');
 }
@@ -563,6 +573,13 @@ document.getElementById('refinePopupCloseBtn').addEventListener('click', hideRef
 document.getElementById('refinePopupViewBtn').addEventListener('click', ()=>{
   hideRefinePopup();
   document.getElementById('refineResults').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+document.getElementById('refinePopupVerdictTag').addEventListener('click', function(){
+  if(!this.classList.contains('clickable')) return;
+  hideRefinePopup();
+  startCompletelyFresh();
+  cvText.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  cvText.focus();
 });
 document.getElementById('refinePopupOverlay').addEventListener('click', (e)=>{
   if(e.target.id === 'refinePopupOverlay') hideRefinePopup();
